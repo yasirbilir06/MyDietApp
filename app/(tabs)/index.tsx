@@ -1,74 +1,115 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image,SafeAreaView } from 'react-native';
+import { useRouter } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StatusBar } from 'expo-status-bar';
+import { useAppStore } from '../stores/appStore';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 
-export default function HomeScreen() {
+
+
+export default function ProfileSelectionScreen() {
+  const router = useRouter();
+  const setDiyetisyenStep = useAppStore((state) => state.setDiyetisyenStep);
+
+  const handleDanisanPress = () => {
+    // Danışan ekranına yönlendirme, global state değişmeden
+    router.push('../screen/LoginCustomer');
+  };
+
+  const handleDiyetisyenPress = () => {
+    // Diyetisyen butonuna basıldığında global state'i 'login' yapıyoruz
+    setDiyetisyenStep('login');
+    router.push('/screen/LoginDietitian');
+  };
+
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
+    <SafeAreaView style={styles.safeArea}>
+       <StatusBar style="light" backgroundColor="#FFC0CB" translucent={true} />
+      
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      
+      <View style={styles.container}>
+        
+        {/* Üst Kısma Logo */}
         <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+          source={require('../../assets/images/logo.png')} // ← Kendi logo yolunuzu ekleyin
+          style={styles.logo}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+
+        {/* Başlık */}
+        <Text style={styles.title}  >Profil Seçimi</Text>
+
+        {/* Profil Seçimi Kartları */}
+        <View style={styles.profileRow}>
+          {/* Danışan Profili */}
+          <TouchableOpacity style={styles.profileCard} onPress={handleDanisanPress}>
+            <Image
+              source={require('../../assets/images/profil.jpg')}
+              style={styles.profileImage}
+            />
+            <Text style={styles.profileName}>Danışan</Text>
+          </TouchableOpacity>
+
+          {/* Diyetisyen Profili */}
+          <TouchableOpacity style={styles.profileCard} onPress={handleDiyetisyenPress}>
+            <Image
+              source={require('../../assets/images/profil.jpg')}
+              style={styles.profileImage}
+            />
+            <Text style={styles.profileName}>Diyetisyen</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </GestureHandlerRootView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'rgb(194,185,125)', // SafeAreaView arka planı pembe
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  logo: {
+    width: 1000,
+    height: 300,
+    marginBottom: 10,
+    marginTop: 10,    
+    resizeMode: 'contain',
+  },
+  title: {
+    fontSize: 30,
+    color: 'rgb(194,185,125)',
+    marginBottom: 50,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingHorizontal: 0,
+  },
+  profileCard: {
+    alignItems: 'center',
+    marginHorizontal: 50,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 100,
+    marginBottom: 5,
+  },
+  profileName: {
+    color: 'rgb(194,185,125)',
+    fontSize: 17,
+    fontWeight: 'bold',
   },
 });
