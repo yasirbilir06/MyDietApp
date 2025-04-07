@@ -1,50 +1,43 @@
-# Welcome to your Expo app 👋
+# 🥦 MyDietApp – Diyetisyen & Danışan Mobil Uygulaması
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+MyDietApp, diyetisyenler ve danışanlar arasında etkili ve sağlıklı bir iletişim ortamı kurmayı amaçlayan kapsamlı bir mobil uygulamadır.  
+Diyetisyenler danışanlarını takip ederken, danışanlar da sağlıklı yaşamlarını kolayca yönetebilirler.
 
-## Get started
+## 🚀 Özellikler
 
-1. Install dependencies
+### 🔐 Kimlik Doğrulama ve Roller
+- Firebase Authentication ile login/kayıt sistemi
+- Rol bazlı kullanıcı ayrımı: **diyetisyen** ve **danışan**
 
-   ```bash
-   npm install
-   ```
+### 🗂️ Dosya ve Takvim Yönetimi
+- 📄 PDF dosyası seçme & Firebase Storage'a yükleme
+- 📅 Firestore bağlantılı takvim ekranı (react-native-calendars)
+- 📌 Randevu oluşturma ve takvime entegre etme (ISO format desteği)
 
-2. Start the app
+### 🧍‍♂️ Danışan Paneli Özellikleri
+- 📥 PDF yükleme (ör. kan sonuçları)
+- 🗓️ Randevu alma ve geçmiş randevuları listeleme
+- ⚖️ Günlük kilo takibi ve grafikle izleme (react-native-chart-kit)
+- 🏃 Fiziksel aktivite düzeyi ve boy bilgisi girişi
+- 🔄 Güncellenebilir kişisel veriler
+- 🌟 Premium üyelik (reklamsız içerik erişimi + özel ayrıcalıklar)
 
-   ```bash
-    npx expo start
-   ```
+### 👩‍⚕️ Diyetisyen Paneli Özellikleri
+- 📥 Danışanların yüklediği PDF’leri görüntüleme
+- 📊 Gerçek zamanlı danışan takibi
+- 📋 Danışan bilgilerini listeleme (boy, aktivite düzeyi dahil)
+- 🧭 Scroll destekli içerik akışı
+- 📅 Randevuların takvimde işaretlenmesi
 
-In the output, you'll find options to open the app in a
+### 🎨 Tasarım & UI/UX
+- 🧭 Drawer navigasyon desteği
+- 🎨 Status bar, header ve tab bar renk uyumu
+- 🔤 CustomTextInput ile özelleştirilmiş form bileşenleri (telefon, doğum tarihi vb.)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### ⚙️ Teknik Altyapı
+- React Native (Expo)
+- Firebase: Auth, Firestore, Storage
+- TypeScript desteği
+- Modüler ve okunabilir kod yapısı
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
