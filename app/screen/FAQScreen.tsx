@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Linking,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { firestore } from '../firebaseConfig';
 import {
@@ -17,17 +18,20 @@ import {
   getDoc,
   onSnapshot,
 } from 'firebase/firestore';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { auth } from '../firebaseConfig';
 
 export default function FAQScreen() {
   const [danisanlar, setDanisanlar] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const q = query(collection(firestore, 'users'), where('role', '==', 'danisan'));
 
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       if (querySnapshot.empty) {
-        console.log('⚠️ Gerçek zamanlı: Hiç danışan yok.');
         setDanisanlar([]);
         setLoading(false);
         return;
@@ -53,7 +57,6 @@ export default function FAQScreen() {
         })
       );
 
-      console.log('🔄 Gerçek zamanlı güncelleme:', danisanList);
       setDanisanlar(danisanList);
       setLoading(false);
     });
@@ -67,7 +70,15 @@ export default function FAQScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Danışanlarım</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Danışanlarım</Text>
+        <TouchableOpacity
+          style={styles.notificationIcon}
+          onPress={() => router.push('/screen/NotificationsScreen')}
+        >
+          <Ionicons name="notifications-outline" size={22} color="#000" />
+        </TouchableOpacity>
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color="#C2B97D" style={{ marginTop: 20 }} />
@@ -92,13 +103,52 @@ export default function FAQScreen() {
               </View>
             )}
 
-            {danisan.pdfUrl ? (
-              <TouchableOpacity style={styles.openButton} onPress={() => handleOpenPDF(danisan.pdfUrl)}>
-                <Text style={styles.openButtonText}>Kan Değerleri </Text>
+            <View style={styles.buttonRow}>
+              {danisan.pdfUrl ? (
+                <TouchableOpacity style={styles.pdfButton} onPress={() => handleOpenPDF(danisan.pdfUrl)}>
+                  <Text style={styles.buttonText}>Kan Değerleri</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.noPdfText}>Henüz PDF yüklenmemiş</Text>
+              )}
+
+              <TouchableOpacity
+                style={styles.chatButton}
+                onPress={async () => {
+                  const currentUserId = auth.currentUser?.uid;
+                  if (!currentUserId) return;
+
+                  const currentUserRef = doc(firestore, 'users', currentUserId);
+                  const currentUserSnap = await getDoc(currentUserRef);
+                  const currentUserData = currentUserSnap.data();
+
+                  if (currentUserData?.role === 'diyetisyen' && currentUserData?.isPremium === false) {
+                    Alert.alert(
+                      'Premium Gerekli',
+                      'Mesaj göndermek için premium üye olmalısınız. Üye olmak ister misiniz?',
+                      [
+                        { text: 'Hayır', style: 'cancel' },
+                        {
+                          text: 'Evet',
+                          onPress: () => router.push('/screen/ Membership'),
+                        },
+                      ]
+                    );
+                    return;
+                  }
+
+                  router.push({
+                    pathname: '/screen/Chat',
+                    params: {
+                      otherUserId: danisan.id,
+                      from: 'FAQScreen',
+                    } as any,
+                  });
+                }}
+              >
+                <Text style={styles.buttonText}>Mesaj Gönder</Text>
               </TouchableOpacity>
-            ) : (
-              <Text style={styles.noPdfText}>Henüz PDF yüklenmemiş</Text>
-            )}
+            </View>
           </View>
         ))
       )}
@@ -112,11 +162,21 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     backgroundColor: '#f8f8f8',
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
+    color: '#000',
+  },
+  notificationIcon: {
+    backgroundColor: '#f2f2f2',
+    padding: 8,
+    borderRadius: 20,
   },
   card: {
     backgroundColor: '#fff',
@@ -146,19 +206,34 @@ const styles = StyleSheet.create({
     color: '#444',
     marginBottom: 2,
   },
-  openButton: {
+  noPdfText: {
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
+    marginTop: 10,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 10,
+  },
+  pdfButton: {
+    flex: 1,
     backgroundColor: '#C2B97D',
     paddingVertical: 10,
     borderRadius: 6,
     alignItems: 'center',
   },
-  openButtonText: {
+  chatButton: {
+    flex: 1,
+    backgroundColor: '#8CBA51',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  buttonText: {
     color: '#fff',
     fontWeight: 'bold',
-  },
-  noPdfText: {
-    fontSize: 14,
-    color: '#999',
-    fontStyle: 'italic',
   },
 });

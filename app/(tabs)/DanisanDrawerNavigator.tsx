@@ -9,6 +9,7 @@ import { View, Image, Text, StyleSheet, TouchableOpacity, Alert } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import Entypo from '@expo/vector-icons/Entypo';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 
 // Ekranlar
 import CustomerPanel from '../screen/CustomerPanel';
@@ -18,7 +19,7 @@ import PracticalRecipes from '../screen/PracticalRecipes';
 import Membership from '../screen/ Membership';
 import AppointmentScreen from '../screen/AppointmentScreen';
 // Firestore ve Auth
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth } from '../firebaseConfig';
 
 const Drawer = createDrawerNavigator();
@@ -84,6 +85,24 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 }
 
 export default function DanisanDrawerNavigator() {
+  useEffect(() => {
+    const registerPushToken = async () => {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') return;
+
+      const tokenData = await Notifications.getExpoPushTokenAsync();
+      const token = tokenData.data;
+      const userId = auth.currentUser?.uid;
+
+      if (userId && token) {
+        const userRef = doc(getFirestore(), 'users', userId);
+        await updateDoc(userRef, { pushToken: token });
+      }
+    };
+
+    registerPushToken();
+  }, []);
+
   return (
     <Drawer.Navigator
       initialRouteName="Profilim"
@@ -123,11 +142,10 @@ export default function DanisanDrawerNavigator() {
         options={{ title: 'Pratik Tarifler' }}
       />
       <Drawer.Screen
-  name="Appointment"
-  component={AppointmentScreen}
-  options={{ title: 'Randevu Al' }}
-/>
-
+        name="Appointment"
+        component={AppointmentScreen}
+        options={{ title: 'Randevu Al' }}
+      />
     </Drawer.Navigator>
   );
 }

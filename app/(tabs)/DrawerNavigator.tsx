@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   createDrawerNavigator,
   DrawerContentScrollView,
@@ -8,6 +8,9 @@ import {
 import { View, Image, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import Entypo from '@expo/vector-icons/Entypo';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { auth } from '../firebaseConfig';
 
 // Ekranlar
 import DietitianPanel from '../screen/ DietitianPanel';
@@ -57,6 +60,27 @@ function CustomDrawerContent(props: DrawerContentComponentProps): JSX.Element {
 }
 
 export default function DrawerNavigator(): JSX.Element {
+  useEffect(() => {
+    const registerPushToken = async () => {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        const { status: newStatus } = await Notifications.requestPermissionsAsync();
+        if (newStatus !== 'granted') return;
+      }
+
+      const tokenData = await Notifications.getExpoPushTokenAsync();
+      const token = tokenData.data;
+      const userId = auth.currentUser?.uid;
+
+      if (userId) {
+        const userRef = doc(getFirestore(), 'users', userId);
+        await setDoc(userRef, { pushToken: token }, { merge: true });
+      }
+    };
+
+    registerPushToken();
+  }, []);
+
   return (
     <Drawer.Navigator
       initialRouteName="Profil"

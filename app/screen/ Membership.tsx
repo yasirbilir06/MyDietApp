@@ -1,34 +1,45 @@
+// screen/Membership.tsx
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { getFirestore, doc, updateDoc } from 'firebase/firestore';
+import { auth } from '../firebaseConfig';
 import { useRouter } from 'expo-router';
 
-export default function Membership() {
+export default function MembershipScreen() {
+  const db = getFirestore();
   const router = useRouter();
+
+  const handleSubscribe = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        isPremium: true,
+      });
+      Alert.alert('Başarılı 🎉', 'Premium üyelik aktif edildi.');
+      router.back();
+    } catch (error) {
+      console.error('Premium üyelik güncellenemedi:', error);
+      Alert.alert('Hata', 'Bir şeyler ters gitti. Lütfen tekrar deneyin.');
+    }
+  };
 
   return (
     <View style={styles.container}>
-      {/* Geri Butonu */}
-      <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/(tabs)')}>
-  <Ionicons name="arrow-back" size={28} color="#000" />
-</TouchableOpacity>
-
-
       <Text style={styles.title}>💎 Premium Üyelik</Text>
-      <Text style={styles.description}>• Reklamsız deneyim{'\n'}• Özel tarifler{'\n'}• Öncelikli destek</Text>
+      <Text style={styles.description}>• Reklamsız deneyim{"\n"}• Özel tarifler{"\n"}• Öncelikli destek</Text>
 
-      {/* Üyelik Butonları (Henüz işlevsiz) */}
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={handleSubscribe}>
         <Text style={styles.buttonText}>Aylık Üye Ol - 19,99 TL</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={handleSubscribe}>
         <Text style={styles.buttonText}>Yıllık Üye Ol - 149,99 TL</Text>
       </TouchableOpacity>
 
-      <Text style={styles.note}>
-        📌 Üyelik sistemi yakında aktif olacaktır.
-      </Text>
+      <Text style={styles.note}>📌 Üyelik sistemi yakında aktif olacaktır.</Text>
     </View>
   );
 }
@@ -36,47 +47,40 @@ export default function Membership() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
+    padding: 24,
     justifyContent: 'center',
-    padding: 20,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: 'rgb(194,185,125)',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   description: {
-    fontSize: 18,
+    fontSize: 16,
     textAlign: 'center',
-    marginBottom: 30,
-    color: '#000',
+    marginBottom: 32,
+    lineHeight: 24,
   },
   button: {
     backgroundColor: 'rgb(194,185,125)',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
-    marginBottom: 15,
-    width: '90%',
+    marginBottom: 16,
+    width: '100%',
+    alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   note: {
-    marginTop: 20,
-    fontSize: 14,
-    color: '#666',
+    marginTop: 16,
     fontStyle: 'italic',
-    textAlign: 'center',
+    color: '#666',
   },
 });

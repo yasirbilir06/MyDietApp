@@ -6,26 +6,22 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons'; 
-import CustomTextInput from '../components/CustomTextInput';
-
+import { Ionicons } from '@expo/vector-icons';
 import PhoneInput from 'react-native-phone-number-input';
-
-// Firebase Authentication
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
-
-// Firestore
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
-
 
 export default function SignUpDanisan() {
   const router = useRouter();
   const db = getFirestore();
+  const phoneInput = useRef<any>(null);
+
   const [role, setRole] = useState<'danisan' | 'diyetisyen' | ''>('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -34,40 +30,26 @@ export default function SignUpDanisan() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const phoneInput = useRef<any>(null);
 
   const handleBirthDateChange = (text: string) => {
     let formatted = text.replace(/\D/g, '');
-    if (formatted.length > 2) {
-      formatted = formatted.slice(0, 2) + '.' + formatted.slice(2);
-    }
-    if (formatted.length > 5) {
-      formatted = formatted.slice(0, 5) + '.' + formatted.slice(5);
-    }
-    if (formatted.length > 10) {
-      formatted = formatted.slice(0, 10);
-    }
+    if (formatted.length > 2) formatted = formatted.slice(0, 2) + '.' + formatted.slice(2);
+    if (formatted.length > 5) formatted = formatted.slice(0, 5) + '.' + formatted.slice(5);
+    if (formatted.length > 10) formatted = formatted.slice(0, 10);
     setBirthDate(formatted);
   };
 
   const handleSignUp = async () => {
-    if (!role) {
-      Alert.alert('Hata', 'Lütfen kayıt türünüzü seçin!');
-      return;
-    }
-
+    if (!role) return Alert.alert('Hata', 'Lütfen kayıt türünüzü seçin!');
     const phoneInfo = phoneInput.current?.getNumberAfterPossiblyEliminatingZero();
     const fullPhoneNumber = phoneInfo?.formattedNumber || '';
 
     if (password !== confirmPassword) {
-      Alert.alert('Hata', 'Şifreler uyuşmuyor!');
-      return;
+      return Alert.alert('Hata', 'Şifreler uyuşmuyor!');
     }
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('Kayıt başarılı (Auth):', userCredential.user.uid);
-
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         firstName,
         lastName,
@@ -75,196 +57,191 @@ export default function SignUpDanisan() {
         email,
         phone: fullPhoneNumber,
         role,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
-      Alert.alert(
-        'Kayıt Başarılı!',
-        'Kayıt işleminiz başarıyla tamamlandı.',
-        [
-          {
-            text: 'Tamam',
-            onPress: () => {
-              if (role === 'diyetisyen') {
-                router.push('/screen/LoginDietitian');
-              } else {
-                router.push('/screen/LoginCustomer');
-              }
-            }
-          }
-        ]
-      );
+      Alert.alert('Kayıt Başarılı!', 'Kayıt işleminiz başarıyla tamamlandı.', [
+        {
+          text: 'Tamam',
+          onPress: () => {
+            router.push(role === 'diyetisyen' ? '/screen/LoginDietitian' : '/screen/LoginCustomer');
+          },
+        },
+      ]);
     } catch (error: any) {
-      console.error('Kayıt hatası:', error.message);
       Alert.alert('Hata', error.message);
     }
   };
 
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.container} bounces={false}>
-      
-      {/* Geri Butonu */}
-      <View style={{ alignSelf: 'flex-start', marginBottom: 10 }}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={28} color="#fff" />
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} bounces={false}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
-      </View>
 
-      <Text style={styles.title}>Kayıt Ol</Text>
+        <View style={styles.card}>
+          <Text style={styles.title}>Kayıt Ol</Text>
 
-      {/* Rol Seçimi */}
-      <View style={styles.radioContainer}>
-        <TouchableOpacity
-          style={[styles.radioButton, role === 'danisan' && styles.radioButtonSelected]}
-          onPress={() => setRole('danisan')}
-        >
-          <Text style={[styles.radioText, role === 'danisan' && styles.radioTextSelected]}>
-            Danışan
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.radioButton, role === 'diyetisyen' && styles.radioButtonSelected]}
-          onPress={() => setRole('diyetisyen')}
-        >
-          <Text style={[styles.radioText, role === 'diyetisyen' && styles.radioTextSelected]}>
-            Diyetisyen
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.radioContainer}>
+            <TouchableOpacity
+              style={[styles.radioButton, role === 'danisan' && styles.radioSelected]}
+              onPress={() => setRole('danisan')}
+            >
+              <Text style={[styles.radioText, role === 'danisan' && styles.radioTextSelected]}>Danışan</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.radioButton, role === 'diyetisyen' && styles.radioSelected]}
+              onPress={() => setRole('diyetisyen')}
+            >
+              <Text style={[styles.radioText, role === 'diyetisyen' && styles.radioTextSelected]}>Diyetisyen</Text>
+            </TouchableOpacity>
+          </View>
 
-       
-      <CustomTextInput
-        label="İsim"
-        value={firstName}
-         onChangeText={setFirstName}
+          <TextInput style={styles.input} placeholder="İsim" value={firstName} onChangeText={setFirstName} />
+          <TextInput style={styles.input} placeholder="Soyisim" value={lastName} onChangeText={setLastName} />
+          <TextInput
+            style={styles.input}
+            placeholder="Doğum Tarihi (GG.AA.YYYY)"
+            value={birthDate}
+            onChangeText={handleBirthDateChange}
+            keyboardType="numeric"
+            maxLength={10}
           />
-        <CustomTextInput
-          label="Soyisim"
-          value={lastName}
-           onChangeText={setLastName}
+          <TextInput
+            style={styles.input}
+            placeholder="e-mail"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <PhoneInput
+            ref={phoneInput}
+            defaultValue={phone}
+            defaultCode="TR"
+            layout="first"
+            onChangeFormattedText={setPhone}
+            containerStyle={styles.phoneContainer}
+            textContainerStyle={styles.phoneTextContainer}
+            textInputStyle={{ color: '#000' }}
+            codeTextStyle={{ color: '#000' }}
+            countryPickerButtonStyle={{ marginLeft: 8 }}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Şifre"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Şifre (Tekrar)"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
           />
 
-      
-         <TextInput
-        style={styles.input}
-        placeholder="Doğum Tarihi (GG.AA.YYYY)"
-        value={birthDate}
-        onChangeText={handleBirthDateChange}
-        keyboardType="numeric"
-        maxLength={10}
-        
-        />
-        <CustomTextInput
-        label="e-mail"
-       value={email}
-       onChangeText={setEmail}
-       keyboardType='email-address'
-      />
-
-      <PhoneInput
-        ref={phoneInput}
-        defaultValue={phone}
-        defaultCode="TR"
-        layout="first"
-        onChangeFormattedText={setPhone}
-        containerStyle={styles.phoneContainer}
-        textContainerStyle={styles.phoneTextContainer}
-        textInputStyle={{ color: '#000' }}
-        codeTextStyle={{ color: '#000' }}
-        countryPickerButtonStyle={{ marginLeft: 8 }}
-        withShadow
-        withDarkTheme={false}
-        autoFocus={false}
-      />
-
-      <CustomTextInput
-      label="Şifre"
-      value={password}
-      onChangeText={setPassword}
-      />
-      <CustomTextInput
-      label="Şifre(Tekrar)"
-      value={password}
-      onChangeText={setPassword}
-
-  
-      />
-
-      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-        <Text style={styles.buttonText}>Kayıt Ol</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <TouchableOpacity style={styles.registerButton} onPress={handleSignUp}>
+            <Text style={styles.registerText}>Kayıt Ol</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: '#f7f5f2',
     flexGrow: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgb(194,185,125)'
+    padding: 20,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginTop: 40,
+    marginBottom: 10,
+  },
+  card: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
   title: {
     fontSize: 24,
-    color: '#FFF',
+    fontWeight: 'bold',
+    color: '#333',
+    alignSelf: 'center',
     marginBottom: 20,
-    textAlign: 'center'
   },
   radioContainer: {
     flexDirection: 'row',
-    marginBottom: 20
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   radioButton: {
-    borderWidth: 1,
-    borderColor: '#FFF',
-    borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    marginHorizontal: 10
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginHorizontal: 10,
   },
-  radioButtonSelected: {
-    backgroundColor: '#FFF'
+  radioSelected: {
+    backgroundColor: 'rgb(194,185,125)',
+    borderColor: 'rgb(194,185,125)',
   },
   radioText: {
-    color: '#FFF',
-    fontSize: 16
+    fontSize: 16,
+    color: '#333',
   },
   radioTextSelected: {
-    color: '#000'
+    color: '#fff',
+    fontWeight: 'bold',
   },
   input: {
-    width: '80%',
+    width: '100%',
     height: 48,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#CCC',
-    borderRadius: 8,
+    borderColor: '#ddd',
     paddingHorizontal: 12,
     marginBottom: 12,
-    backgroundColor: '#FFF',
-    color: '#000'
+    color: '#000',
   },
   phoneContainer: {
-    width: '80%',
+    width: '100%',
     height: 48,
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 12,
-    backgroundColor: '#FFF'
+    backgroundColor: '#f9f9f9',
   },
   phoneTextContainer: {
-    paddingVertical: 0,
-    backgroundColor: '#FFF',
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8
+    backgroundColor: '#f9f9f9',
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
   },
-  button: {
-    backgroundColor: '#FFF',
-    padding: 12,
-    borderRadius: 20,
-    marginTop: 12
+  registerButton: {
+    marginTop: 20,
+    backgroundColor: 'rgb(194,185,125)',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
-  buttonText: {
+  registerText: {
+    color: '#fff',
     fontSize: 16,
-    color: '#000'
-  }
+    fontWeight: 'bold',
+  },
 });

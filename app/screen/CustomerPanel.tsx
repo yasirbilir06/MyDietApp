@@ -1,22 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Image, 
-  TouchableOpacity 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
 } from 'react-native';
-// @ts-ignore
-import { useNavigation } from '@react-navigation/native';
-
 import { router } from 'expo-router';
 import { BarChart } from 'react-native-chart-kit';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  onSnapshot,
+} from 'firebase/firestore';
 import { auth } from '../firebaseConfig';
+import { Ionicons } from '@expo/vector-icons';
+import { useAppStore } from '../stores/appStore';
 
 export default function CustomerPanel() {
-  const navigation = useNavigation();
   const db = getFirestore();
+  const danisanAvatarKey = useAppStore(state => state.danisanAvatar);
+
+  const avatarImages: Record<string, any> = {
+    customergirl1: require('../../assets/avatars/customergirl1.png'),
+    customergirl2: require('../../assets/avatars/customergirl2.png'),
+    customergirl3: require('../../assets/avatars/customergirl3.png'),
+    customerboy1: require('../../assets/avatars/customerboy1.png'),
+    customerboy2: require('../../assets/avatars/customerboy2.png'),
+    customerboy3: require('../../assets/avatars/customerboy3.png'),
+    default: require('../../assets/images/profil.jpg'),
+  };
 
   const [userData, setUserData] = useState({
     name: '',
@@ -24,22 +43,11 @@ export default function CustomerPanel() {
     gender: '',
     height: '',
     activityLevel: '',
-    profilePic: require('../../assets/images/profil.jpg')
   });
 
-  const calculateAge = (birthDateStr: string | undefined) => {
-    if (!birthDateStr) return 0;
-    const [dd, mm, yyyy] = birthDateStr.split('.');
-    if (!dd || !mm || !yyyy) return 0;
-    const birthDate = new Date(`${yyyy}-${mm}-${dd}`);
-    const now = new Date();
-    let age = now.getFullYear() - birthDate.getFullYear();
-    const monthDiff = now.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
+  const [dietitianUID, setDietitianUID] = useState<string | null>(null);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -60,8 +68,13 @@ export default function CustomerPanel() {
             gender: data.gender || '',
             height: data.height || '',
             activityLevel: data.activityLevel || '',
-            profilePic: require('../../assets/images/profil.jpg')
           });
+
+          if (data.dietitianId) {
+            setDietitianUID(data.dietitianId);
+          }
+
+          setIsPremium(data.isPremium === true);
         }
       } catch (error) {
         console.error('Kullanıcı verileri alınırken hata:', error);
@@ -71,23 +84,96 @@ export default function CustomerPanel() {
     fetchUserData();
   }, []);
 
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    const q = query(
+      collection(db, 'notifications', uid, 'items'),
+      where('read', '==', false)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setHasUnreadNotifications(!snapshot.empty);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const calculateAge = (birthDateStr: string | undefined) => {
+    if (!birthDateStr) return 0;
+    const [dd, mm, yyyy] = birthDateStr.split('.');
+    if (!dd || !mm || !yyyy) return 0;
+    const birthDate = new Date(`${yyyy}-${mm}-${dd}`);
+    const now = new Date();
+    let age = now.getFullYear() - birthDate.getFullYear();
+    const monthDiff = now.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const handleOpenFullChart = () => {
     router.push('/screen/ WeightTracking');
   };
 
   const handleOpenKisiselVeriler = () => {
-    router.push('/screen/CustomerPanel');
+    router.push('/screen/PersonalData');
+  };
+
+  const handleChat = () => {
+    if (!isPremium) {
+      Alert.alert(
+        'Premium Gerekli',
+        'Mesajlaşma özelliğini kullanmak için premium üye olmalısınız. Üyelik sayfasına gitmek ister misiniz?',
+        [
+          { text: 'Hayır', style: 'cancel' },
+          {
+            text: 'Evet',
+            onPress: () => router.push('/screen/ Membership'),
+          },
+        ]
+      );
+      return;
+    }
+
+    if (!dietitianUID) {
+      Alert.alert('Hata', 'Diyetisyen bulunamadı.');
+      return;
+    }
+
+    router.push({
+      pathname: '/screen/Chat',
+      params: { otherUserId: dietitianUID },
+    });
   };
 
   const miniData = {
     labels: ['10/3', '11/3', '12/3'],
-    datasets: [{ data: [90, 91, 85] }]
+    datasets: [{ data: [90, 91, 85] }],
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.headerIcons}>
+        <TouchableOpacity style={styles.iconWrapper} onPress={handleChat}>
+          <Ionicons name="chatbubble-ellipses-outline" size={22} color="#000" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.iconWrapper}
+          onPress={() => router.push('/screen/NotificationsScreen')}
+        >
+          <View>
+            <Ionicons name="notifications-outline" size={22} color="#000" />
+            {hasUnreadNotifications && <View style={styles.badge} />}
+          </View>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.profileHeader}>
-        <Image source={userData.profilePic} style={styles.profileImage} />
+        <Image source={avatarImages[danisanAvatarKey]} style={styles.profileImage} />
         <View style={styles.profileInfo}>
           <Text style={styles.name}>{userData.name}</Text>
           <Text style={styles.age}>Yaş: {userData.age}</Text>
@@ -97,13 +183,11 @@ export default function CustomerPanel() {
       <TouchableOpacity style={styles.detailsSection} onPress={handleOpenKisiselVeriler}>
         <Text style={styles.sectionTitle}>Kişisel Veriler</Text>
 
-        {(!userData.height || !userData.activityLevel || !userData.gender) && (
+        {(!userData.height || !userData.activityLevel || !userData.gender) ? (
           <Text style={styles.placeholderText}>
             Kayıt sırasında girilen veriler burada görüntülenecek.
           </Text>
-        )}
-
-        {userData.height && userData.activityLevel && userData.gender && (
+        ) : (
           <View style={styles.userInfoBox}>
             <Text style={styles.userInfoText}>Cinsiyet: {userData.gender}</Text>
             <Text style={styles.userInfoText}>Boyunuz: {userData.height} cm</Text>
@@ -130,7 +214,7 @@ export default function CustomerPanel() {
               decimalPlaces: 0,
               color: (opacity = 1) => `rgba(191, 90, 242, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-              propsForBackgroundLines: { stroke: '#3A3A3C' }
+              propsForBackgroundLines: { stroke: '#3A3A3C' },
             }}
             style={{ borderRadius: 8 }}
             withHorizontalLabels={false}
@@ -139,34 +223,54 @@ export default function CustomerPanel() {
           <Text style={styles.chartPreviewText}>Dokununca tam ekran grafik!</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
+  container: { backgroundColor: '#fff', padding: 16 },
+  headerIcons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 10,
+  },
+  iconWrapper: {
+    marginLeft: 12,
+    backgroundColor: '#f2f2f2',
+    padding: 8,
+    borderRadius: 20,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: 'red',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
     backgroundColor: 'rgb(194,185,125)',
     borderRadius: 12,
-    padding: 16
+    padding: 16,
+    marginBottom: 20,
   },
   profileImage: { width: 80, height: 80, borderRadius: 40 },
   profileInfo: { marginLeft: 16 },
-  name: { fontSize: 22, fontWeight: 'bold', color: '#333' },
-  age: { fontSize: 16, color: '#666', marginTop: 4 },
+  name: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
+  age: { fontSize: 16, color: '#fff', marginTop: 4 },
   detailsSection: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2
+    elevation: 2,
   },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#333' },
   placeholderText: { fontSize: 16, color: '#888' },
@@ -174,20 +278,20 @@ const styles = StyleSheet.create({
     marginTop: 12,
     backgroundColor: '#f2f2f2',
     borderRadius: 8,
-    padding: 10
+    padding: 10,
   },
   userInfoText: { fontSize: 14, color: '#444', marginBottom: 4 },
   chartPreviewContainer: {
     backgroundColor: '#2C2C2E',
     borderRadius: 12,
-    padding: 16
+    padding: 16,
   },
   chartPreviewTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#FFF' },
   chartPreviewBox: {
     backgroundColor: '#f2f2f2',
     borderRadius: 8,
     padding: 16,
-    alignItems: 'center'
+    alignItems: 'center',
   },
-  chartPreviewText: { fontSize: 14, color: '#666', marginTop: 8 }
+  chartPreviewText: { fontSize: 14, color: '#666', marginTop: 8 },
 });
