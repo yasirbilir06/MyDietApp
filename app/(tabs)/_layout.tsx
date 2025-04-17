@@ -47,7 +47,7 @@ export default function TabLayout() {
 
           <TouchableOpacity
             style={styles.iconContainer}
-            onPress={() => router.replace('/screen/PracticalRecipes')}
+            onPress={() => router.replace('/screen/recipes/RecipesListScreen')}
           >
             <FontAwesome6 name="bowl-food" size={24} color="white" />
             <Text style={styles.label}>Tarifler</Text>

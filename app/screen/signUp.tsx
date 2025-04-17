@@ -13,7 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import PhoneInput from 'react-native-phone-number-input';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
@@ -31,6 +31,22 @@ export default function SignUpDanisan() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const handleTextInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (text: string) => {
+    const formatted = text.replace(/[^a-zA-ZçğıöşüÇĞİÖŞÜ\s]/g, '');
+    setter(formatted);
+  };
+
+  const filterPhoneInput = (text: string) => {
+    let cleaned = text.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) cleaned = cleaned.slice(1);
+    if (cleaned.length > 10) cleaned = cleaned.slice(0, 10);
+    return cleaned;
+  };
+
+  const handlePhoneNumberChange = (text: string) => {
+    setPhone(filterPhoneInput(text));
+  };
+
   const handleBirthDateChange = (text: string) => {
     let formatted = text.replace(/\D/g, '');
     if (formatted.length > 2) formatted = formatted.slice(0, 2) + '.' + formatted.slice(2);
@@ -41,35 +57,69 @@ export default function SignUpDanisan() {
 
   const handleSignUp = async () => {
     if (!role) return Alert.alert('Hata', 'Lütfen kayıt türünüzü seçin!');
-    const phoneInfo = phoneInput.current?.getNumberAfterPossiblyEliminatingZero();
-    const fullPhoneNumber = phoneInfo?.formattedNumber || '';
+
+    if (!firstName || !lastName || !birthDate || !email || !phone || !password || !confirmPassword) {
+      return Alert.alert('Hata', 'Lütfen tüm alanları doldurun!');
+    }
+
+    if (!/^\d{10}$/.test(phone)) {
+      return Alert.alert('Hata', 'Telefon numarası 10 haneli olmalı ve başında sıfır bulunmamalıdır.');
+    }
+
+    if (password.length < 6) {
+      return Alert.alert('Hata', 'Şifre en az 6 karakter olmalıdır!');
+    }
 
     if (password !== confirmPassword) {
       return Alert.alert('Hata', 'Şifreler uyuşmuyor!');
     }
 
+    const phoneInfo = phoneInput.current?.getNumberAfterPossiblyEliminatingZero();
+    const fullPhoneNumber = phoneInfo?.formattedNumber || '';
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         firstName,
         lastName,
         birthDate,
         email,
         phone: fullPhoneNumber,
-        role,
+        role: role === 'diyetisyen' ? 'pending-diyetisyen' : 'danisan',
         createdAt: new Date(),
       });
 
-      Alert.alert('Kayıt Başarılı!', 'Kayıt işleminiz başarıyla tamamlandı.', [
-        {
-          text: 'Tamam',
-          onPress: () => {
-            router.push(role === 'diyetisyen' ? '/screen/LoginDietitian' : '/screen/LoginCustomer');
+      await sendEmailVerification(userCredential.user);
+
+      Alert.alert(
+        'Kayıt Başarılı',
+        'Lütfen e-posta adresinize gönderilen doğrulama linkine tıklayarak hesabınızı etkinleştirin.',
+        [
+          {
+            text: 'Tamam',
+            onPress: () => {
+              router.push('/');
+            },
           },
-        },
-      ]);
+        ]
+      );
     } catch (error: any) {
-      Alert.alert('Hata', error.message);
+      let message = 'Bir hata oluştu. Lütfen tekrar deneyin.';
+
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          message = 'Bu e-posta adresi zaten kullanımda.';
+          break;
+        case 'auth/invalid-email':
+          message = 'Geçersiz e-posta adresi.';
+          break;
+        case 'auth/weak-password':
+          message = 'Şifre en az 6 karakter olmalıdır.';
+          break;
+      }
+
+      Alert.alert('Hata', message);
     }
   };
 
@@ -84,22 +134,22 @@ export default function SignUpDanisan() {
           <Text style={styles.title}>Kayıt Ol</Text>
 
           <View style={styles.radioContainer}>
-            <TouchableOpacity
-              style={[styles.radioButton, role === 'danisan' && styles.radioSelected]}
-              onPress={() => setRole('danisan')}
-            >
-              <Text style={[styles.radioText, role === 'danisan' && styles.radioTextSelected]}>Danışan</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.radioButton, role === 'diyetisyen' && styles.radioSelected]}
-              onPress={() => setRole('diyetisyen')}
-            >
-              <Text style={[styles.radioText, role === 'diyetisyen' && styles.radioTextSelected]}>Diyetisyen</Text>
-            </TouchableOpacity>
+            <RoleButton label="Danışan" role="danisan" currentRole={role} onPress={() => setRole('danisan')} />
+            <RoleButton label="Diyetisyen" role="diyetisyen" currentRole={role} onPress={() => setRole('diyetisyen')} />
           </View>
 
-          <TextInput style={styles.input} placeholder="İsim" value={firstName} onChangeText={setFirstName} />
-          <TextInput style={styles.input} placeholder="Soyisim" value={lastName} onChangeText={setLastName} />
+          <TextInput
+            style={styles.input}
+            placeholder="İsim"
+            value={firstName}
+            onChangeText={handleTextInputChange(setFirstName)}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Soyisim"
+            value={lastName}
+            onChangeText={handleTextInputChange(setLastName)}
+          />
           <TextInput
             style={styles.input}
             placeholder="Doğum Tarihi (GG.AA.YYYY)"
@@ -110,18 +160,19 @@ export default function SignUpDanisan() {
           />
           <TextInput
             style={styles.input}
-            placeholder="e-mail"
+            placeholder="E-mail"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
           />
           <PhoneInput
             ref={phoneInput}
             defaultValue={phone}
             defaultCode="TR"
             layout="first"
-            onChangeFormattedText={setPhone}
+            onChangeFormattedText={handlePhoneNumberChange}
             containerStyle={styles.phoneContainer}
             textContainerStyle={styles.phoneTextContainer}
             textInputStyle={{ color: '#000' }}
@@ -151,6 +202,25 @@ export default function SignUpDanisan() {
     </KeyboardAvoidingView>
   );
 }
+
+const RoleButton = ({
+  label,
+  role,
+  currentRole,
+  onPress,
+}: {
+  label: string;
+  role: string;
+  currentRole: string;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    style={[styles.radioButton, currentRole === role && styles.radioSelected]}
+    onPress={onPress}
+  >
+    <Text style={[styles.radioText, currentRole === role && styles.radioTextSelected]}>{label}</Text>
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   container: {

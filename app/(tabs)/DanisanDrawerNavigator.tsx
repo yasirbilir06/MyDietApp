@@ -10,17 +10,17 @@ import { Ionicons } from '@expo/vector-icons';
 import Entypo from '@expo/vector-icons/Entypo';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth } from '../firebaseConfig';
+import { useAppStore } from '../stores/appStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Ekranlar
 import CustomerPanel from '../screen/CustomerPanel';
 import Results from '../screen/Results';
 import WeightTracking from '../screen/ WeightTracking';
 import PracticalRecipes from '../screen/PracticalRecipes';
-import Membership from '../screen/ Membership';
 import AppointmentScreen from '../screen/AppointmentScreen';
-// Firestore ve Auth
-import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth } from '../firebaseConfig';
 
 const Drawer = createDrawerNavigator();
 
@@ -28,6 +28,23 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   const db = getFirestore();
   const router = useRouter();
   const [fullName, setFullName] = useState('');
+  const [avatar, setAvatar] = useState('');
+
+  const danisanAvatarKey = useAppStore((state) => state.danisanAvatar); // Danışan avatar key
+  const avatarImages: Record<string, any> = {
+    // Danışan avatarları
+    customergirl1: require('../../assets/avatars/customergirl1.png'),
+    customergirl2: require('../../assets/avatars/customergirl2.png'),
+    customergirl3: require('../../assets/avatars/customergirl3.png'),
+    customerboy1: require('../../assets/avatars/customerboy1.png'),
+    customerboy2: require('../../assets/avatars/customerboy2.png'),
+    customerboy3: require('../../assets/avatars/customerboy3.png'),
+    // Varsayılan avatar
+    default: require('../../assets/images/profil.jpg'),
+  };
+
+  // Seçilen avatar görseli
+  const avatarSource = avatarImages[danisanAvatarKey] || avatarImages.default;
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -67,10 +84,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   return (
     <DrawerContentScrollView {...props}>
       <View style={styles.headerContainer}>
-        <Image
-          source={require('../../assets/images/profil.jpg')}
-          style={styles.profileImage}
-        />
+        <Image source={avatarSource} style={styles.profileImage} />
         <Text style={styles.userName}>{fullName}</Text>
       </View>
 
@@ -119,6 +133,10 @@ export default function DanisanDrawerNavigator() {
             <Ionicons name="menu" size={24} color="#fff" />
           </TouchableOpacity>
         ),
+        drawerActiveTintColor: 'white', // Seçili menü yazısı beyaz olacak
+        drawerActiveBackgroundColor: 'rgb(194,185,125)', // Seçili menü arka planı
+        drawerInactiveTintColor: '#333', // Seçilmemiş menü yazısı rengi
+        drawerLabelStyle: { fontSize: 15 }, // Menü yazı boyutu
       })}
     >
       <Drawer.Screen
@@ -171,15 +189,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#e74c3c',
-    marginHorizontal: 16,
-    marginTop: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    marginHorizontal: 60,
+    marginTop: 16, // Daha az mesafe
+    paddingVertical: 8, // Daha ince yükseklik
+    paddingHorizontal: 12,
+    borderRadius: 16, // Yumuşak köşeler
   },
   logoutText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14, // Yazı boyutunu küçülttük
+    fontWeight: '500', // Daha ince yazı
   },
 });

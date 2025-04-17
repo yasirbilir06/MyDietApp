@@ -6,13 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import {
-  GoogleAuthProvider,
-  signInWithCredential,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
@@ -20,8 +17,6 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { useAppStore } from '../stores/appStore';
-
-WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginDietitian() {
   const router = useRouter();
@@ -41,43 +36,30 @@ export default function LoginDietitian() {
     default: require('../../assets/images/profil.jpg'),
   };
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: '785721866692-70basij134sm96sefuka34itfqd3v1nr.apps.googleusercontent.com',
-    redirectUri: 'https://auth.expo.io/@ebyas/MyDietApp',
-  });
-
-  React.useEffect(() => {
-    if (response?.type === 'success' && response.authentication?.accessToken) {
-      const { accessToken } = response.authentication;
-      const credential = GoogleAuthProvider.credential(null, accessToken);
-      signInWithCredential(auth, credential)
-        .then(async (userCredential) => {
-          const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-          if (!userDoc.exists() || userDoc.data().role !== 'diyetisyen') {
-            return alert('Bu hesap diyetisyen hesabı değildir!');
-          }
-          const token = await userCredential.user.getIdToken();
-          await AsyncStorage.setItem('diyetisyenToken', token);
-          router.push('/(tabs)/DrawerNavigator');
-        })
-        .catch((err) => {
-          alert('Hata: ' + err.message);
-        });
-    }
-  }, [response]);
-
   const handleEmailPasswordLogin = async () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-      if (!userDoc.exists() || userDoc.data().role !== 'diyetisyen') {
-        return alert('Bu hesap diyetisyen hesabı değildir!');
+
+      if (!userDoc.exists()) {
+        return Alert.alert('Hata', 'Kullanıcı bulunamadı.');
       }
+
+      const role = userDoc.data().role;
+
+      if (role === 'pending-diyetisyen') {
+        return Alert.alert('Onay Bekleniyor', 'Hesabınız henüz yönetici tarafından onaylanmamış. Lütfen bekleyin.');
+      }
+
+      if (role !== 'diyetisyen') {
+        return Alert.alert('Erişim Reddedildi', 'Bu giriş sadece diyetisyenler içindir.');
+      }
+
       const token = await userCredential.user.getIdToken();
       await AsyncStorage.setItem('diyetisyenToken', token);
       router.push('/(tabs)/DrawerNavigator');
     } catch (err: any) {
-      alert('Giriş Hatası: ' + err.message);
+      Alert.alert('Giriş Hatası', 'E-posta adresiniz veya şifreniz hatalı.');
     }
   };
 
@@ -98,6 +80,8 @@ export default function LoginDietitian() {
           value={email}
           onChangeText={setEmail}
           style={styles.input}
+          autoCapitalize="none"
+          autoCorrect={false}
         />
         <TextInput
           placeholder="Şifre"
@@ -112,8 +96,8 @@ export default function LoginDietitian() {
           <Text style={styles.loginButtonText}>Giriş Yap</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.googleButton} onPress={() => promptAsync()} disabled={!request}>
-          <Text style={styles.googleButtonText}>Google ile Giriş Yap</Text>
+        <TouchableOpacity onPress={() => router.push('/screen/ResetPassword')}>
+          <Text style={styles.forgotPassword}>Şifremi Unuttum</Text>
         </TouchableOpacity>
 
         <Text style={styles.signupText}>
@@ -184,19 +168,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
-  googleButton: {
-    backgroundColor: '#fff',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  googleButtonText: {
-    color: '#333',
-    fontSize: 16,
+  forgotPassword: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
   },
   signupText: {
     fontSize: 14,

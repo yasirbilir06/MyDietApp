@@ -1,45 +1,39 @@
-// screen/Membership.tsx
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { getFirestore, doc, updateDoc } from 'firebase/firestore';
-import { auth } from '../firebaseConfig';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 export default function MembershipScreen() {
-  const db = getFirestore();
   const router = useRouter();
 
-  const handleSubscribe = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        isPremium: true,
-      });
-      Alert.alert('Başarılı 🎉', 'Premium üyelik aktif edildi.');
-      router.back();
-    } catch (error) {
-      console.error('Premium üyelik güncellenemedi:', error);
-      Alert.alert('Hata', 'Bir şeyler ters gitti. Lütfen tekrar deneyin.');
-    }
+  const handleBack = () => {
+    router.push("/"); 
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>💎 Premium Üyelik</Text>
-      <Text style={styles.description}>• Reklamsız deneyim{"\n"}• Özel tarifler{"\n"}• Öncelikli destek</Text>
+      {/* Geri Tuşu */}
+      <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={24} color="#000" />
+      </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handleSubscribe}>
+      <Text style={styles.title}>💎 Premium Üyelik</Text>
+      <Text style={styles.description}>
+        • Reklamsız deneyim ✅{"\n"}
+        • Özel tarifler ✅{"\n"}
+        • Diyetisye-Danışan Mesajlaşma ✅
+      </Text>
+
+      {/* Geçici butonlar (şimdilik işlevsiz) */}
+      <TouchableOpacity style={styles.button} onPress={() => {}}>
         <Text style={styles.buttonText}>Aylık Üye Ol - 19,99 TL</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handleSubscribe}>
+      <TouchableOpacity style={styles.button} onPress={() => {}}>
         <Text style={styles.buttonText}>Yıllık Üye Ol - 149,99 TL</Text>
       </TouchableOpacity>
 
-      <Text style={styles.note}>📌 Üyelik sistemi yakında aktif olacaktır.</Text>
+      <Text style={styles.note}>📌 Üyelik sistemi yayın sonrası aktif edilecektir.</Text>
     </View>
   );
 }
@@ -48,9 +42,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
   },
   title: {
     fontSize: 28,
@@ -82,5 +82,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontStyle: 'italic',
     color: '#666',
+    textAlign: 'center',
   },
 });

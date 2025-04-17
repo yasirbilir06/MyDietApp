@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +6,8 @@ import {
   TouchableOpacity,
   Image,
   SafeAreaView,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -15,13 +16,22 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useAppStore } from '../stores/appStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const { width } = Dimensions.get('window');
+
+
+
+
 
 export default function ProfileSelectionScreen() {
   const router = useRouter();
   const setDiyetisyenStep = useAppStore((state) => state.setDiyetisyenStep);
+  const [showSplash, setShowSplash] = useState(true);
+  const [appReady, setAppReady] = useState(false);
 
   const danisanAvatarKey = useAppStore((state) => state.danisanAvatar);
   const diyetisyenAvatarKey = useAppStore((state) => state.diyetisyenAvatar);
+  
+
   useEffect(() => {
     const loadStoredAvatars = async () => {
       const danisan = await AsyncStorage.getItem('danisanAvatar');
@@ -32,27 +42,27 @@ export default function ProfileSelectionScreen() {
     };
 
     loadStoredAvatars();
+
+    const timeout = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000); // Splash süresi
+
+    return () => clearTimeout(timeout);
   }, []);
 
-
   const avatarImages: Record<string, any> = {
-    // Danışan
     customergirl1: require('../../assets/avatars/customergirl1.png'),
     customergirl2: require('../../assets/avatars/customergirl2.png'),
     customergirl3: require('../../assets/avatars/customergirl3.png'),
     customerboy1: require('../../assets/avatars/customerboy1.png'),
     customerboy2: require('../../assets/avatars/customerboy2.png'),
     customerboy3: require('../../assets/avatars/customerboy3.png'),
-
-    // Diyetisyen
     dietitiangirl1: require('../../assets/avatars/dietitiangirl1.png'),
     dietitiangirl2: require('../../assets/avatars/dietitiangirl2.png'),
     dietitiangirl3: require('../../assets/avatars/dietitiangirl3.png'),
     dietitianboy1: require('../../assets/avatars/dietitianboy1.png'),
     dietitianboy2: require('../../assets/avatars/dietitianboy2.png'),
     dietitianboy3: require('../../assets/avatars/dietitianboy3.png'),
-
-    // Varsayılan
     default: require('../../assets/images/profil.jpg'),
   };
 
@@ -69,9 +79,10 @@ export default function ProfileSelectionScreen() {
     router.push('/screen/SelectAvatarScreen');
   };
 
+ 
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      
       <StatusBar style="light" backgroundColor="#FFC0CB" translucent={true} />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.container}>
@@ -84,18 +95,12 @@ export default function ProfileSelectionScreen() {
 
           <View style={styles.profileRow}>
             <TouchableOpacity style={styles.profileCard} onPress={handleDanisanPress}>
-              <Image
-                source={avatarImages[danisanAvatarKey]}
-                style={styles.profileImage}
-              />
+              <Image source={avatarImages[danisanAvatarKey]} style={styles.profileImage} />
               <Text style={styles.profileName}>Danışan</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.profileCard} onPress={handleDiyetisyenPress}>
-              <Image
-                source={avatarImages[diyetisyenAvatarKey]}
-                style={styles.profileImage}
-              />
+              <Image source={avatarImages[diyetisyenAvatarKey]} style={styles.profileImage} />
               <Text style={styles.profileName}>Diyetisyen</Text>
             </TouchableOpacity>
           </View>
@@ -137,7 +142,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    paddingHorizontal: 0,
   },
   profileCard: {
     alignItems: 'center',

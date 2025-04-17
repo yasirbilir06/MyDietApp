@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -54,18 +54,33 @@ export default function LoginCustomer() {
   }, [response]);
 
   const handleEmailPasswordLogin = async () => {
+    if (!email || !password) {
+      return Alert.alert('Hata', 'Lütfen e-posta ve şifrenizi girin.');
+    }
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        return Alert.alert(
+          'E-posta Doğrulanmadı',
+          'Lütfen e-posta adresinizi doğrulayın. Mail kutunuzu kontrol edin.'
+        );
+      }
+
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
         if (data.role !== 'danisan') return;
       }
-      const token = await userCredential.user.getIdToken();
+
+      const token = await user.getIdToken();
       await AsyncStorage.setItem('danisanToken', token);
       router.push('/(tabs)/DanisanDrawerNavigator');
     } catch (error: any) {
-      console.error('Giriş hatası:', error.message);
+      
+      Alert.alert('Giriş Hatası', 'E-posta adresiniz veya şifreniz hatalı.');
     }
   };
 
@@ -80,12 +95,16 @@ export default function LoginCustomer() {
       <View style={styles.card}>
         <Text style={styles.title}>Giriş Yap</Text>
         <TextInput
-          style={styles.input}
-          placeholder="E-posta"
+         style={styles.input}
+         placeholder="E-posta"
           placeholderTextColor="#999"
           value={email}
           onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
+
         <TextInput
           style={styles.input}
           placeholder="Şifre"
@@ -106,6 +125,9 @@ export default function LoginCustomer() {
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push('/screen/signUp')}>
           <Text style={styles.bottomText}>Hesabın yok mu? <Text style={{ fontWeight: 'bold' }}>Kayıt Ol</Text></Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/screen/ResetPassword')}>
+          <Text style={[styles.bottomText, { marginTop: 6, fontSize: 13 }]}>Şifremi Unuttum</Text>
         </TouchableOpacity>
       </View>
     </View>

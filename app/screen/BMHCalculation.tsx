@@ -5,9 +5,14 @@ import {
   Text, 
   TextInput, 
   TouchableOpacity, 
-  StyleSheet 
+  
+  StyleSheet
 } from 'react-native';
 import CustomTextInput from '../components/CustomTextInput';
+import { Modal, Pressable } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect } from 'react';
+
 
 /**
  * WHO formülü: Yaşa ve cinsiyete göre farklı hesaplamalar
@@ -146,6 +151,18 @@ export default function BMHCalculation() {
   const [faKatsayisi, setFaKatsayisi] = useState<string>('1.2');
   const [cinsiyet, setCinsiyet] = useState<'male' | 'female'>('male');
   const [sonuc, setSonuc] = useState('');
+  const [showWarning, setShowWarning] = useState(false);
+
+useEffect(() => {
+  const checkPopupShown = async () => {
+    const shown = await AsyncStorage.getItem('bmhWarningShown');
+    if (!shown) {
+      setShowWarning(true);
+    }
+  };
+  checkPopupShown();
+}, []);
+
   
 
   const handleCalculate = () => {
@@ -227,6 +244,36 @@ Schofield:
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {showWarning && (
+  <Modal transparent animationType="fade" visible={showWarning}>
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>⚠️ Önemli Uyarı!</Text>
+        <Text style={styles.modalText}>
+          Sadece "Ağırlık" kısmına girilen değerler kalori hesabına dahildir. İdeal veya Formüla ağırlığı bulduktan sonra "Ağırlık" kısmına girip tekrar kalori hesaplamanız gerekir!
+        </Text>
+
+        <Pressable
+          style={styles.modalButton}
+          onPress={async () => {
+            await AsyncStorage.setItem('bmhWarningShown', 'true');
+            setShowWarning(false);
+          }}
+        >
+          <Text style={styles.modalButtonText}>Anladım, Bir Daha Gösterme</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.modalButtonOutline}
+          onPress={() => setShowWarning(false)}
+        >
+          <Text style={styles.modalButtonOutlineText}>Sadece Bu Sefer Kapat</Text>
+        </Pressable>
+      </View>
+    </View>
+  </Modal>
+)}
+
       <Text style={styles.title}>BMH Hesaplama</Text>
 
       <CustomTextInput
@@ -366,5 +413,57 @@ const styles = StyleSheet.create({
   resultText: {
     fontSize: 16,
     color: '#333'
-  }
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    margin: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#d35400',
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 15,
+    color: '#333',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButton: {
+    backgroundColor: 'rgb(194,185,125)',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  modalButtonOutline: {
+    borderWidth: 1,
+    borderColor: 'rgb(194,185,125)',
+    padding: 10,
+    borderRadius: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonOutlineText: {
+    color: 'rgb(194,185,125)',
+    fontWeight: 'bold',
+  },
+  
 });

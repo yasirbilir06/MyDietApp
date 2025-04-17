@@ -16,7 +16,7 @@ export default function CustomTabBar() {
         <Text style={styles.label}>Ana Sayfa</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.iconContainer} onPress={() => router.replace('/screen/PracticalRecipes')}>
+      <TouchableOpacity style={styles.iconContainer} onPress={() => router.replace('/screen/recipes/RecipesListScreen')}>
         <FontAwesome6 name="bowl-food" size={24} color="white" />
         <Text style={styles.label}>Tarifler</Text>
       </TouchableOpacity>

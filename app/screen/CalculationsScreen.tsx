@@ -7,6 +7,8 @@ import { NavigationProp } from '@react-navigation/native';
 type RootStackParamList = {
   BMHHesaplama: undefined;
   DegisimHesaplama: undefined;
+  ChildBMHCalculation:undefined;
+  
 };
 
 interface CalculationsScreenProps {
@@ -27,6 +29,19 @@ export default function CalculationsScreen({ navigation }: CalculationsScreenPro
           <View style={styles.profileInfo}>
             <Image source={require('../../assets/images/calculation_2.png')} style={styles.profileImage} />
             <Text style={styles.profileName}>BMH Hesaplama</Text>
+            <Text style={styles.profileSubtitle}>Bazal Metabolizma Hızı</Text>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.cardWrapper}
+        onPress={() => navigation.navigate('ChildBMHCalculation')}
+      >
+        <LinearGradient colors={['#f7f3e9', '#e2d2b4']} style={styles.profileCard}>
+          <View style={styles.profileInfo}>
+            <Image source={require('../../assets/images/child.png')} style={styles.profileImage} />
+            <Text style={styles.profileName}>Çocuk BMH Hesaplama</Text>
             <Text style={styles.profileSubtitle}>Bazal Metabolizma Hızı</Text>
           </View>
         </LinearGradient>
